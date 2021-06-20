@@ -1,0 +1,25 @@
+{
+    "name": "azurre/php-cli-builder",
+    "description": "Build a CLI commands",
+    "version": "0.1",
+    "keywords": ["CLI", "cmd", "builder"],
+    "require": {
+        "php": ">=7.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Azurre\\Component\\Cli\\": "src/"
+        }
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Aleksandr Milenin",
+            "email": "azrr.mail@gmail.com"
+        }
+    ],
+    "homepage": "https://github.com/azurre/php-cli-builder",
+    "support": {
+        "issues": "https://github.com/azurre/php-cli-builder/issues"
+    }
+}
