@@ -1,7 +1,7 @@
 {
     "name": "azurre/php-cli-builder",
     "description": "Build a CLI commands",
-    "version": "0.1",
+    "version": "0.2",
     "keywords": ["CLI", "cmd", "builder"],
     "require": {
         "php": ">=7.0"

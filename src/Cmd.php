@@ -11,6 +11,9 @@ namespace Azurre\Component\Cli;
  */
 class Cmd
 {
+    const TO_NULL = '/dev/null';
+    const TO_STDOUT = '&1';
+
     const ARG_PURE = 0;
     const ARG_OPTION = 1;
     const ARG_LONG_OPTION = 2;
@@ -19,14 +22,20 @@ class Cmd
 
     /** @var string|null */
     protected $executable;
-
+    protected $stdOut = '';
+    protected $stdErr = '';
     protected $escapeChar = '"';
-
+    protected $parameterSeparator = ['=', '='];
     protected $arguments = [];
 
     public function __construct(string $executable = null)
     {
         $this->executable = $executable;
+    }
+
+    public static function create(...$args)
+    {
+        return new static(...$args);
     }
 
     public function addOption(string $key, bool $isLong = false)
@@ -57,6 +66,18 @@ class Cmd
         return $this;
     }
 
+    public function stdOutTo(string $to, bool $append = false)
+    {
+        $this->stdOut = [$to, $append];
+        return $this;
+    }
+
+    public function stdErrTo(string $to, bool $append = false)
+    {
+        $this->stdErr = [$to, $append];
+        return $this;
+    }
+
     public function getEscapeChar(): string
     {
         return $this->escapeChar;
@@ -68,12 +89,67 @@ class Cmd
         return $this;
     }
 
-    protected function prepareParameterValue(string $value): string
+    public function getParameterSeparator(): array
     {
-        if (strpos($value, ' ') !== false) {
-            return "'$value'";
+        return $this->parameterSeparator;
+    }
+
+    /**
+     * @param string|array $separator
+     * @return $this
+     */
+    public function setParameterSeparator($separator, $longSeparator = null)
+    {
+        if (is_array($separator) && count($separator) === 2) {
+            $this->parameterSeparator = $separator;
+        } elseif (is_string($separator)) {
+            $longSeparator = is_string($longSeparator) ? $longSeparator : $separator;
+            $this->parameterSeparator[0] = $longSeparator;
+            $this->parameterSeparator[1] = $separator;
+        } else {
+            throw new \InvalidArgumentException('Invalid separator format');
         }
-        return $value;
+        return $this;
+    }
+
+    public function getParameterShortSeparator(): string
+    {
+        return $this->parameterSeparator[1];
+    }
+
+    /**
+     * @param string $separator
+     * @return $this
+     */
+    public function setParameterShortSeparator(string $separator)
+    {
+        $this->parameterSeparator[1] = $separator;
+        return $this;
+    }
+
+    public function getParameterLongSeparator(): string
+    {
+        return $this->parameterSeparator[0];
+    }
+
+    /**
+     * @param string $separator
+     * @return $this
+     */
+    public function setParameterLongSeparator(string $separator)
+    {
+        $this->parameterSeparator[0] = $separator;
+        return $this;
+    }
+
+    protected function prepareParameterValue(array $param): string
+    {
+        list($type, $key, $value) = $param;
+        $short = $type === static::ARG_PARAMETER;
+        if (strpos($value, ' ') !== false) {
+            $value = "'$value'";
+        }
+        return '-' . ($short ? '' : '-') . $key . $this->parameterSeparator[(int)$short] . $value;
     }
 
     public function __toString(): string
@@ -91,12 +167,18 @@ class Cmd
                     $cmd[] = "--$argument[1]";
                     break;
                 case static::ARG_PARAMETER:
-                    $cmd[] = "-$argument[1]=" . $this->prepareParameterValue($argument[2]);
-                    break;
                 case static::ARG_LONG_PARAMETER:
-                    $cmd[] = "--$argument[1]=" . $this->prepareParameterValue($argument[2]);
+                    $cmd[] = $this->prepareParameterValue($argument);
                     break;
             }
+        }
+        if ($this->stdOut) {
+            $append = $this->stdOut[1] ? '>>' : '>';
+            $cmd[] = "1{$append}{$this->stdOut[0]}";
+        }
+        if ($this->stdErr) {
+            $append = $this->stdErr[1] ? '>>' : '>';
+            $cmd[] = "2{$append}{$this->stdErr[0]}";
         }
         return implode(' ', $cmd);
     }
